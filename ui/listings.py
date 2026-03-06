@@ -36,6 +36,12 @@ def show_listings_table(
     display[t("col_size")] = df["size"].astype(float).round(1)
     display[t("col_rent")] = (df["total_rent"] / 10_000).round(1)
 
+    if "predicted_rent" in df.columns:
+        display[t("col_market_value")] = (df["predicted_rent"] / 10_000).round(1)
+
+    if "deal_score" in df.columns:
+        display[t("col_deal_score")] = df["deal_score"]
+
     # Rent ratio
     if wage > 0:
         ratios = df["total_rent"] / wage * 100
