@@ -366,10 +366,15 @@ if st.session_state.get("search_triggered"):
             cols = st.columns(num_cols) if num_cols > 0 else []
             for i, (_, row) in enumerate(cluster_df.iterrows()):
                 a_name = row["area"]
-                score = int(row["total"])
+                import pykakasi
+                kks = pykakasi.kakasi()
+                res = kks.convert(a_name)
+                romaji = "".join([x['hepburn'].capitalize() for x in res])
+                
+                label = f"{a_name}\n({romaji}) · {int(row['total'])}"
                 is_active = (a_name == selected_area)
                 cols[i % num_cols].button(
-                    f"{a_name} · {score}",
+                    label,
                     key=f"btn_{a_name}",
                     type="primary" if is_active else "secondary",
                     use_container_width=True,
