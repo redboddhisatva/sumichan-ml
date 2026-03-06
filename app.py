@@ -97,10 +97,22 @@ st.markdown(
 # ── Load station list for dropdown ───────────────────────────────────────
 @st.cache_data
 def _load_station_names() -> list[str]:
+    import pykakasi
+    kks = pykakasi.kakasi()
+    
     path = os.path.join(os.path.dirname(__file__), "data", "stations.json")
     with open(path, encoding="utf-8") as f:
         data = json.load(f)
-    return sorted(data.keys())
+    
+    stations = sorted(data.keys())
+    bilingual = [""]  # Start with empty string as first option
+    
+    for s in stations:
+        result = kks.convert(s)
+        romaji = "".join([item['hepburn'].capitalize() for item in result])
+        bilingual.append(f"{s} ({romaji})")
+        
+    return bilingual
 
 
 STATION_NAMES = _load_station_names()
@@ -138,32 +150,31 @@ with st.sidebar:
     st.divider()
 
     # Region multi-select
-    region_keys = ["tokyo", "saitama", "chiba", "kanagawa"]
-    region_labels = {k: t(k) for k in region_keys}
-    selected_labels = st.multiselect(
+    # Target Regions
+    selected_regions = st.multiselect(
         t("region_label"),
-        options=list(region_labels.values()),
-        default=[region_labels["tokyo"]],
+        options=["tokyo", "saitama", "chiba", "kanagawa"],
+        default=[],
+        format_func=lambda x: t(x),
     )
-    label_to_key = {v: k for k, v in region_labels.items()}
-    selected_regions = [label_to_key[lbl] for lbl in selected_labels]
 
     # Wage
     wage = st.number_input(
         t("wage_label"),
-        min_value=100_000,
+        min_value=0,
         max_value=2_000_000,
-        value=300_000,
+        value=0,
         step=10_000,
     )
 
     # Workplace — dropdown from stations.json
-    default_idx = STATION_NAMES.index("新宿") if "新宿" in STATION_NAMES else 0
-    workplace = st.selectbox(
+    workplace_full = st.selectbox(
         t("workplace_label"),
         options=STATION_NAMES,
-        index=default_idx,
+        index=0, # This is the empty string ""
     )
+    # Extract just the Kanji part for the backend
+    workplace = workplace_full.split(" (")[0] if " (" in workplace_full else workplace_full
 
     # Layout filter
     layout_options = [
@@ -208,6 +219,14 @@ if st.session_state.get("search_triggered"):
     # Determine layout_all for the stored language (might differ from current)
     _layout_all_ja = get_text("layout_all", "ja")
     _layout_all_en = get_text("layout_all", "en")
+
+    if not _regions:
+        st.info(" Please select at least one region to begin.")
+        st.stop()
+        
+    if not _workplace:
+        st.warning(t_disp("err_no_workplace"))
+        st.stop()
 
     with st.spinner(t_disp("loading")):
         try:
