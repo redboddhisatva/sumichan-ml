@@ -5,7 +5,7 @@ from xgboost import XGBRegressor
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
-@st.cache_resource(show_spinner="Training Rent Prediction Model (XGBoost)...")
+@st.cache_resource(show_spinner="Training Rent Prediction Model...")
 def train_xgboost_rent_model(df: pd.DataFrame) -> tuple[XGBRegressor, dict]:
     """
     Trains an XGBoost model to predict total_rent based on property features.
@@ -36,7 +36,7 @@ def train_xgboost_rent_model(df: pd.DataFrame) -> tuple[XGBRegressor, dict]:
     return model, cat_mapping
 
 
-@st.cache_resource(show_spinner="Clustering Areas (K-Means)...")
+@st.cache_resource(show_spinner="Clustering Areas...")
 def train_kmeans_clusters(area_stats: pd.DataFrame) -> dict[str, str]:
     """
     Trains K-Means to cluster areas into 4 distinct lifestyle groups.
