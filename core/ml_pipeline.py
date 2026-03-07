@@ -17,8 +17,8 @@ def train_xgboost_rent_model(df: pd.DataFrame) -> tuple[XGBRegressor, dict]:
     train_df = train_df.dropna(subset=['total_rent', 'size_num', 'commute_min', 'density'])
     
     # Filter out bizarre outliers to keep training stable
-    train_df = train_df[(train_df['total_rent'] > 10000) & (train_df['total_rent'] < 1000000)]
-    train_df = train_df[train_df['size_num'] > 5]
+    train_df = train_df[(train_df['total_rent'] > 10000) & (train_df['total_rent'] < 700000)]
+    train_df = train_df[train_df['size_num'] > 20]
     
     # Encode 'layout' as categorical codes
     layout_cats = train_df['layout'].astype('category')
