@@ -9,10 +9,10 @@ import pandas as pd
 
 from core.i18n import get_text
 
-# Colour palette — Camel Fair
+# Colour palette — JSX-matched Navy/Slate
 COLORS = [
-    "#dda95b", "#a67739", "#715026", "#4d3616", "#efdcae",
-    "#c49a4a", "#8b6230", "#5e411e", "#d6be8a", "#977548",
+    "#1e3a8a", "#334155", "#1e40af", "#475569", "#0f172a",
+    "#1e293b", "#3b82f6", "#64748b", "#2563eb", "#94a3b8",
 ]
 
 
@@ -22,10 +22,10 @@ def build_radar_chart(
     selected_area: str | None = None,
 ) -> go.Figure:
     """
-    Build a 3-axis radar chart comparing the top areas.
+    Build a 4-axis radar chart comparing the top areas.
     When *selected_area* is set, that trace is highlighted and the rest dimmed.
 
-    Expected columns: area, cost_score, commute_score, value_score, total
+    Expected columns: area, cost_score, commute_score, value_score, density_score, total
     """
     categories = [
         get_text("axis_cost", lang),
@@ -68,31 +68,32 @@ def build_radar_chart(
 
     fig.update_layout(
         polar=dict(
-            bgcolor="#ffffff",
+            bgcolor="#FAFBFC",
             radialaxis=dict(
                 visible=True,
                 range=[0, 100],
-                gridcolor="#e0d3be",
-                tickfont=dict(size=10, color="#715026"),
+                gridcolor="#E5E7EB",
+                tickfont=dict(size=10, color="#6B7280"),
                 ticksuffix="",
             ),
             angularaxis=dict(
-                gridcolor="#e0d3be",
-                tickfont=dict(size=12, color="#4d3616"),
+                gridcolor="#E5E7EB",
+                tickfont=dict(size=12, color="#1A1A2E", family="DM Sans"),
             ),
         ),
-        paper_bgcolor="#ffffff",
-        font=dict(color="#4d3616"),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#1A1A2E", family="Inter"),
         showlegend=False,
         height=420,
         margin=dict(l=60, r=60, t=30, b=30),
         hovermode="closest",
         hoverlabel=dict(
-            bgcolor="#ffffff",
+            bgcolor="#FFFFFF",
             font_size=13,
-            font_family="'Montserrat', 'Noto Sans JP', sans-serif",
-            font_color="#4d3616",
-            bordercolor="#e0d3be"
+            font_family="'Inter', 'Noto Sans JP', sans-serif",
+            font_color="#1A1A2E",
+            bordercolor="#E5E7EB"
         ),
     )
 
