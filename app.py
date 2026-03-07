@@ -1,5 +1,5 @@
 """
-🗼 スミちゃん · Tokyo Living Finder
+🗼 スミちゃん · Home Sweet Sumika
 Main Streamlit application — bilingual EN/JP.
 """
 
@@ -23,14 +23,14 @@ from core.scoring import (
 from core.ml_pipeline import (
     train_xgboost_rent_model,
     train_kmeans_clusters,
-    calculate_ml_deal_score
+    calculate_deal_scores_vectorized,
 )
 from ui.radar import build_radar_chart, COLORS
 from ui.listings import show_listings_table
 
 # ── Page config ──────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="スミちゃん · Tokyo Living Finder",
+    page_title="スミちゃん · Home Sweet Sumika",
     page_icon="🗼",
     layout="wide",
 )
@@ -266,8 +266,8 @@ if st.session_state.get("search_triggered"):
     X_pred = df_pred[['size_num', 'commute_min', 'density', 'layout_code']].fillna(0)
     
     df['predicted_rent'] = xgb_model.predict(X_pred)
-    df['deal_score'] = df.apply(
-        lambda row: calculate_ml_deal_score(row['total_rent'], row['predicted_rent']), axis=1
+    df['deal_score'] = calculate_deal_scores_vectorized(
+        df['total_rent'], df['predicted_rent']
     )
 
     # ── Filter ───────────────────────────────────────────────────────

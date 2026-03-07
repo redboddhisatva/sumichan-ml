@@ -27,24 +27,27 @@ def _load_stations() -> dict[str, list[float]]:
         return json.load(f)
 
 
-def find_coords(name: str) -> list[float] | None:
+@lru_cache(maxsize=2048)
+def find_coords(name: str) -> tuple[float, float] | None:
     """
     Look up GPS coordinates for a station name.
 
     - Strips trailing "駅" if present
     - Falls back to partial/containment matching
+    - Results are cached to avoid repeated lookups.
     """
     stations = _load_stations()
     clean = name.replace("駅", "").strip()
 
     # Exact match
     if clean in stations:
-        return stations[clean]
+        coords = stations[clean]
+        return tuple(coords)
 
     # Fuzzy: check if any key contains the name or vice-versa
     for key, coords in stations.items():
         if clean in key or key in clean:
-            return coords
+            return tuple(coords)
 
     return None
 
@@ -53,9 +56,9 @@ def find_coords(name: str) -> list[float] | None:
 # Haversine
 # ---------------------------------------------------------------------------
 
-def haversine(coord1: list[float], coord2: list[float]) -> float:
+def haversine(coord1, coord2) -> float:
     """
-    Return the distance in **km** between two [lat, lng] points.
+    Return the distance in **km** between two (lat, lng) points.
     """
     R = 6371.0  # Earth radius in km
     lat1, lon1 = math.radians(coord1[0]), math.radians(coord1[1])

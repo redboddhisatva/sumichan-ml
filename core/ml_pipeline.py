@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from xgboost import XGBRegressor
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import StandardScaler
 
 @st.cache_resource(show_spinner="Training Rent Prediction Model...")
@@ -30,8 +30,16 @@ def train_xgboost_rent_model(df: pd.DataFrame) -> tuple[XGBRegressor, dict]:
     X = train_df[['size_num', 'commute_min', 'density', 'layout_code']]
     y = train_df['total_rent']
     
-    model = XGBRegressor(n_estimators=100, max_depth=6, learning_rate=0.1, random_state=42)
-    model.fit(X, y)
+    model = XGBRegressor(
+        n_estimators=200,
+        max_depth=6,
+        learning_rate=0.1,
+        random_state=42,
+        tree_method='hist',      # histogram-based splitting — 3-10x faster
+        n_jobs=-1,               # use all CPU cores
+        early_stopping_rounds=10 # stop if no improvement for 10 rounds
+    )
+    model.fit(X, y, eval_set=[(X, y)], verbose=False)
     
     return model, cat_mapping
 
@@ -40,6 +48,7 @@ def train_xgboost_rent_model(df: pd.DataFrame) -> tuple[XGBRegressor, dict]:
 def train_kmeans_clusters(area_stats: pd.DataFrame) -> dict[str, str]:
     """
     Trains K-Means to cluster areas into 4 distinct lifestyle groups.
+    Uses MiniBatchKMeans for significantly faster convergence.
     Returns a dictionary mapping 'area' -> 'Cluster Label'.
     """
     # area_stats index is the area name
@@ -54,7 +63,12 @@ def train_kmeans_clusters(area_stats: pd.DataFrame) -> dict[str, str]:
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     
-    kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+    kmeans = MiniBatchKMeans(
+        n_clusters=4,
+        random_state=42,
+        n_init=3,           # fewer inits — fast convergence
+        batch_size=256,     # mini-batch for speed
+    )
     clusters = kmeans.fit_predict(X_scaled)
     
     train_df['cluster'] = clusters
@@ -97,3 +111,28 @@ def calculate_ml_deal_score(actual_rent: float, predicted_rent: float) -> int:
     if ratio <= 1.10: return 40
     if ratio <= 1.20: return 20 
     return 12
+
+
+def calculate_deal_scores_vectorized(
+    actual: pd.Series, predicted: pd.Series
+) -> pd.Series:
+    """
+    Vectorized deal-score calculation — replaces row-by-row .apply().
+    Returns a Series of int scores (12–100).
+    """
+    ratio = actual / predicted.replace(0, np.nan)
+    conditions = [
+        (actual <= 0) | (predicted <= 0),
+        ratio <= 0.70,
+        ratio <= 0.80,
+        ratio <= 0.90,
+        ratio <= 1.00,
+        ratio <= 1.10,
+        ratio <= 1.20,
+    ]
+    choices = [50, 100, 90, 80, 60, 40, 20]
+    return pd.Series(
+        np.select(conditions, choices, default=12),
+        index=actual.index,
+        dtype=int,
+    )

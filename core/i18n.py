@@ -8,7 +8,7 @@ STRINGS = {
     "ja": {
         # Sidebar
         "app_title": "🗼 スミちゃん",
-        "app_subtitle": "居住エリア推薦エンジン",
+        "app_subtitle": "あなたの理想の住まいを。",
         "lang_label": "🌐 言語 / Language",
         "region_label": "対象エリア",
         "wage_label": "手取り月収（円）",
@@ -63,7 +63,7 @@ STRINGS = {
     "en": {
         # Sidebar
         "app_title": "🗼 Sumi-chan",
-        "app_subtitle": "Tokyo Living Area Recommender",
+        "app_subtitle": "Home Sweet Sumika",
         "lang_label": "🌐 言語 / Language",
         "region_label": "Target Regions",
         "wage_label": "Monthly Take-Home Pay (¥)",
