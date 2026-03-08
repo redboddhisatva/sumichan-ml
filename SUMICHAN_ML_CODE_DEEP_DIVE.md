@@ -276,7 +276,31 @@ Cluster 1 (avg ¥200,000) → Rank 3 → "Premium Central"
 
 ---
 
-## Deal Score Calculation
+## Deal Score & Area Scoring Calculation
+
+### Area Scoring (Continuous Statistical Models)
+
+Area scores are calculated using a weighted combination of four factors: Cost (35%), Commute (35%), Value (20%), and Density (10%). Originally implemented as hardcoded bins (which created "cliff effects"), these are now calculated using **Continuous Mathematical Curves** for statistical accuracy:
+
+#### 1. Rent/Income (Cost Score) - Logistic Inverse Curve
+```python
+score = 100 / (1 + math.exp(35 * (ratio - 0.32)))
+```
+We use a sigmoid (S-curve) centered around a 32% rent-to-income ratio. This gives a massive score to properties taking <20% of income, quickly decays around the 33% mark (where rent becomes a financial burden), and flattens out at the bottom.
+
+#### 2. Commute Time - Exponential Decay
+```python
+score = 100 * math.exp(-0.015 * (minutes - 10))
+```
+Any commute under 5 minutes yields a perfect 100. After that, the score decays exponentially. A 35-minute commute smoothly scores ~75, and a 60-minute commute scores ~40.
+
+#### 3. Density - Linear Interpolation
+```python
+score = (density / 20000) * 100
+```
+Rather than dropping sharply at arbitrary thresholds, density scales linearly from 0 to 20,000+ people/km² (capped at 100), rewarding vibrant urban centers smoothly.
+
+### Listing Deal Score (XGBoost Prediction)
 
 ### Scalar Version (legacy)
 
@@ -285,12 +309,6 @@ def calculate_ml_deal_score(actual_rent: float, predicted_rent: float) -> int:
     ratio = actual_rent / predicted_rent
     
     if ratio <= 0.70: return 100   # Paying 30%+ BELOW market → incredible deal
-    if ratio <= 0.80: return 90    # Paying 20-30% below market
-    if ratio <= 0.90: return 80    # Paying 10-20% below market
-    if ratio <= 1.00: return 60    # At or slightly below market
-    if ratio <= 1.10: return 40    # Paying 0-10% above market
-    if ratio <= 1.20: return 20    # Paying 10-20% above market
-    return 12                       # Paying 20%+ above market → bad deal
 ```
 
 ### Vectorized Version (current, fast)
