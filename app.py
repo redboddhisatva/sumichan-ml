@@ -186,14 +186,22 @@ st.markdown(
 
     /* ── Inputs ─────────────────────────────────────────────────────── */
     [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
-    .stNumberInput input {
+    .stNumberInput input,
+    .stTextInput input {
         border-radius: 12px !important;
         border: 2px solid #e5e7eb !important;
     }
     [data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
-    .stNumberInput input:focus {
+    .stNumberInput input:focus,
+    .stTextInput input:focus {
         border-color: #1e3a8a !important;
         box-shadow: 0 0 0 3px rgba(30,58,138,0.1) !important;
+    }
+    .stNumberInput input::placeholder,
+    .stTextInput input::placeholder {
+        text-align: center !important;
+        color: #d1d5db !important; /* light gray, closer to white */
+        opacity: 1 !important; /* Some browsers lower opacity by default */
     }
 
     /* ── Hero section ──────────────────────────────────────────────── */
@@ -452,23 +460,27 @@ with st.sidebar:
     st.caption(t("app_subtitle"))
     st.divider()
 
-    # Region multi-select
-    # Target Regions
-    selected_regions = st.multiselect(
-        t("region_label"),
-        options=["tokyo", "saitama", "chiba", "kanagawa"],
-        default=[],
-        format_func=lambda x: t(x),
-    )
+    # Wage (Monthly income)
+    if "wage_input_key" not in st.session_state:
+        st.session_state.wage_input_key = ""
 
-    # Wage
-    wage = st.number_input(
+    def format_wage():
+        raw_val = st.session_state.wage_input_key
+        digits = "".join(filter(str.isdigit, str(raw_val)))
+        if digits:
+            st.session_state.wage_input_key = f"{int(digits):,}"
+        else:
+            st.session_state.wage_input_key = ""
+
+    wage_val_str = st.text_input(
         t("wage_label"),
-        min_value=0,
-        max_value=2_000_000,
-        value=0,
-        step=10_000,
+        placeholder="",
+        key="wage_input_key",
+        on_change=format_wage,
     )
+    
+    wage_digits = "".join(filter(str.isdigit, wage_val_str))
+    wage = int(wage_digits) if wage_digits else 0
 
     # Workplace — dropdown from stations.json
     workplace_full = st.selectbox(
@@ -478,6 +490,14 @@ with st.sidebar:
     )
     # Extract just the Kanji part for the backend
     workplace = workplace_full.split(" (")[0] if " (" in workplace_full else workplace_full
+
+    # Region multi-select (Living Area)
+    selected_regions = st.multiselect(
+        t("region_label"),
+        options=["tokyo", "saitama", "chiba", "kanagawa"],
+        default=[],
+        format_func=lambda x: t(x),
+    )
 
     # Layout filter
     layout_options = [
@@ -720,29 +740,28 @@ if st.session_state.get("search_triggered"):
                 is_active = (a_name == selected_area)
                 active_cls = "active" if is_active else ""
 
-                viewing_badge = '<span class="viewing-badge">Viewing</span>' if is_active else ''
-
                 card_html = (
                     '<div class="area-card ' + active_cls + '" style="margin-bottom:0.75rem">'
-                    + viewing_badge
-                    + '<div class="area-header">'
+                    + '<div class="area-header" style="justify-content: center;">'
                     + '<div class="area-name">' + str(a_name) + '</div>'
-                    + '<div class="area-score">Score: ' + str(score_pct) + '</div>'
                     + '</div>'
-                    + '<div class="area-name-en">' + romaji + '</div>'
+                    + '<div class="area-name-en" style="text-align: center;">' + romaji + '</div>'
+                    + '<div style="text-align: center; margin: 0.6rem 0;">'
+                    + '<span class="area-score" style="font-size: 1rem; padding: 0.2rem 0.8rem;">Score: ' + str(score_pct) + '</span>'
+                    + '</div>'
                     + '<div class="area-stats">'
                     + '<div class="area-stat-box"><div class="stat-label">Avg Rent</div><div class="stat-value">\u00a5' + str(avg_rent_k) + 'K</div></div>'
                     + '<div class="area-stat-box"><div class="stat-label">Commute</div><div class="stat-value">' + str(avg_commute) + 'm</div></div>'
                     + '<div class="area-stat-box"><div class="stat-label">Listings</div><div class="stat-value">' + str(prop_count) + '</div></div>'
                     + '</div>'
-                    + '<div class="area-footer"><span class="prop-count">' + str(prop_count) + ' properties</span><span class="view-link">View \u2192</span></div>'
+                    + '<div class="area-footer" style="justify-content: center;"><span class="prop-count">' + str(prop_count) + ' properties</span></div>'
                     + '<div class="score-bar" style="width:' + str(score_pct) + '%"></div>'
                     + '</div>'
                 )
                 with cols[i % num_cols]:
                     st.markdown(card_html, unsafe_allow_html=True)
                     st.button(
-                        f"Select {a_name}",
+                        "Select",
                         key=f"btn_{a_name}",
                         type="primary" if is_active else "secondary",
                         use_container_width=True,
