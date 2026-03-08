@@ -27,19 +27,28 @@ def train_xgboost_rent_model(df: pd.DataFrame) -> tuple[XGBRegressor, dict]:
     # Save the mapping so we can encode new predictions identically
     cat_mapping = {val: idx for idx, val in enumerate(layout_cats.cat.categories)}
     
+    # --- Optimization: Sample data so training doesn't take forever ---
+    max_train_samples = 15000
+    if len(train_df) > max_train_samples:
+        train_df = train_df.sample(n=max_train_samples, random_state=42)
+    
     X = train_df[['size_num', 'commute_min', 'density', 'layout_code']]
     y = train_df['total_rent']
     
     model = XGBRegressor(
-        n_estimators=200,
-        max_depth=6,
+        n_estimators=100,        # Reduced from 200 for 2x faster training
+        max_depth=5,             # Reduced from 6 for faster training
         learning_rate=0.1,
         random_state=42,
         tree_method='hist',      # histogram-based splitting — 3-10x faster
         n_jobs=-1,               # use all CPU cores
         early_stopping_rounds=10 # stop if no improvement for 10 rounds
     )
-    model.fit(X, y, eval_set=[(X, y)], verbose=False)
+    # Give it 20% validation split for early stopping
+    from sklearn.model_selection import train_test_split
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
     
     return model, cat_mapping
 

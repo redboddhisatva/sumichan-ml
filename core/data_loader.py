@@ -6,9 +6,10 @@ import pandas as pd
 import streamlit as st
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_all_data(regions: list[str]) -> pd.DataFrame:
+def load_all_data(regions: list[str], layout: str = None) -> pd.DataFrame:
     """
     Fetch property data from Supabase for the specified regions.
+    Filters by layout in the SQL query to optimize loading and downstream ML.
     """
     if not regions:
         return pd.DataFrame()
@@ -22,6 +23,11 @@ def load_all_data(regions: list[str]) -> pd.DataFrame:
     region_str = ", ".join(f"'{r}'" for r in safe_regions)
     query = f"SELECT * FROM properties WHERE region IN ({region_str})"
     
+    if layout:
+        # Avoid SQL injection by replacing simple quotes, just in case
+        safe_layout = layout.replace("'", "''")
+        query += f" AND layout = '{safe_layout}'"
+        
     df = conn.query(query)
     
     for col in df.columns:

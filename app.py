@@ -563,21 +563,19 @@ if st.session_state.get("search_triggered"):
 
     t_disp = lambda key: get_text(key, _lang)
 
-    # Determine layout_all for the stored language (might differ from current)
-    _layout_all_ja = get_text("layout_all", "ja")
-    _layout_all_en = get_text("layout_all", "en")
-
-    if not _regions:
-        st.info(" Please select at least one region to begin.")
-        st.stop()
-        
     if not _workplace:
         st.warning(t_disp("err_no_workplace"))
         st.stop()
 
+    # Determine layout_all for the stored language (might differ from current)
+    _layout_all_ja = get_text("layout_all", "ja")
+    _layout_all_en = get_text("layout_all", "en")
+    is_all = _layout_filter in (_layout_all_ja, _layout_all_en)
+    
     with st.spinner(t_disp("loading")):
         try:
-            raw_df = load_all_data(_regions)
+            # Query optimization: Only fetch the requested layout if not 'All'
+            raw_df = load_all_data(_regions, layout=None if is_all else _layout_filter)
         except RuntimeError as e:
             st.error(t_disp("err_fetch_failed").format(str(e)))
             st.stop()
@@ -618,10 +616,6 @@ if st.session_state.get("search_triggered"):
     )
 
     # ── Filter ───────────────────────────────────────────────────────
-    is_all = _layout_filter in (_layout_all_ja, _layout_all_en)
-    if not is_all:
-        df = df[df["layout"] == _layout_filter]
-
     df = df[(df["total_rent"] > 0) & (df["area"].notna())]
 
     if df.empty:
